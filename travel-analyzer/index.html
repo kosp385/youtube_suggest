@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>여행지 유튜브 분석기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="ti ti-plane-tilt"></i>
+          <span>TravelAI</span>
+        </div>
+        <p class="logo-sub">유튜브 기반 여행지 분석</p>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">도시명</label>
+        <input type="text" id="cityInput" class="input" placeholder="예: 도쿄, 방콕, 파리" />
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">현지 언어</label>
+        <select id="localLang" class="input">
+          <option value="Japanese">🇯🇵 일본어</option>
+          <option value="Thai">🇹🇭 태국어</option>
+          <option value="Vietnamese">🇻🇳 베트남어</option>
+          <option value="English">🇺🇸 영어</option>
+          <option value="French">🇫🇷 프랑스어</option>
+          <option value="Spanish">🇪🇸 스페인어</option>
+          <option value="Italian">🇮🇹 이탈리아어</option>
+          <option value="Chinese">🇨🇳 중국어</option>
+        </select>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">카테고리</label>
+        <div class="cat-group">
+          <button class="cat-btn active" data-cat="food">
+            <i class="ti ti-tools-kitchen-2"></i> 맛집
+          </button>
+          <button class="cat-btn active" data-cat="hotel">
+            <i class="ti ti-bed"></i> 호텔
+          </button>
+          <button class="cat-btn active" data-cat="spot">
+            <i class="ti ti-camera"></i> 관광지
+          </button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">검색 언어</label>
+        <div class="cat-group">
+          <button class="lang-btn active" data-lang="ko">한국어</button>
+          <button class="lang-btn active" data-lang="local">현지어</button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">OpenAI API Key</label>
+        <input type="password" id="apiKey" class="input" placeholder="sk-..." />
+        <p class="input-hint">키는 브라우저에만 저장되며 서버로 전송되지 않습니다</p>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">YouTube API Key</label>
+        <input type="password" id="ytKey" class="input" placeholder="AIza..." />
+        <p class="input-hint">Google Cloud Console에서 발급</p>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runAnalysis()">
+        <i class="ti ti-player-play"></i>
+        분석 시작
+      </button>
+
+      <button class="demo-btn" id="demoBtn" onclick="runDemo()">
+        <i class="ti ti-flask"></i>
+        데모 실행 (API 없이)
+      </button>
+    </aside>
+
+    <main class="main">
+      <div id="emptyState" class="empty-state">
+        <i class="ti ti-search"></i>
+        <h2>도시를 입력하고 분석을 시작해보세요</h2>
+        <p>유튜브 영상을 자동으로 수집하고 Claude가 맛집·호텔·관광지를 정리해드려요</p>
+        <div class="how-it-works">
+          <div class="step"><span class="step-num">1</span><span>YouTube API로 최근 1년 영상 검색</span></div>
+          <div class="step"><span class="step-num">2</span><span>자막 추출 및 협찬 영상 필터링</span></div>
+          <div class="step"><span class="step-num">3</span><span>Claude API로 장소 추출 및 요약</span></div>
+          <div class="step"><span class="step-num">4</span><span>JSON 데이터로 저장</span></div>
+        </div>
+      </div>
+
+      <div id="loadingState" class="loading-state hidden">
+        <div class="log-panel">
+          <div class="log-header">
+            <span class="log-dot running" id="logDot"></span>
+            <span id="logTitle">분석 중...</span>
+          </div>
+          <div class="log-body" id="logBody"></div>
+        </div>
+      </div>
+
+      <div id="resultsState" class="hidden">
+        <div class="results-header">
+          <div>
+            <h2 id="resultsCity"></h2>
+            <p id="resultsMeta" class="results-meta"></p>
+          </div>
+          <div class="results-actions">
+            <button class="action-btn" onclick="exportJSON()">
+              <i class="ti ti-download"></i> JSON 저장
+            </button>
+            <button class="action-btn" onclick="copyJSON()">
+              <i class="ti ti-copy"></i> 복사
+            </button>
+            <button class="action-btn" onclick="resetUI()">
+              <i class="ti ti-refresh"></i> 새 검색
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="filter-row">
+          <button class="filter-btn active" data-filter="all" onclick="filterResults('all', this)">전체</button>
+          <button class="filter-btn" data-filter="food" onclick="filterResults('food', this)">
+            <i class="ti ti-tools-kitchen-2"></i> 맛집
+          </button>
+          <button class="filter-btn" data-filter="hotel" onclick="filterResults('hotel', this)">
+            <i class="ti ti-bed"></i> 호텔
+          </button>
+          <button class="filter-btn" data-filter="spot" onclick="filterResults('spot', this)">
+            <i class="ti ti-camera"></i> 관광지
+          </button>
+        </div>
+
+        <div class="places-grid" id="placesGrid"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

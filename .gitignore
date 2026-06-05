@@ -1,0 +1,18 @@
+# 환경변수 (절대 업로드 금지)
+.env
+collector/.env
+
+# 수집 결과물
+collector/output/
+collector/tmp/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 테스트용 스크립트
+run_osaka.py
+screenshot_*.png
